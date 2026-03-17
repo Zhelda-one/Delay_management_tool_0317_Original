@@ -144,14 +144,14 @@ def _build_real_range_debug(master: dict[str, float]) -> pd.DataFrame:
 
     # E-키 기반이 아닌 항목은 계산식으로 구성
     computed_ranges = {
-        "F38_real_T2a_max_up": (-master["E5_t2a_max_up"], -master["E4_t2a_min_up"]),
-        "F39_real_T2a_min_up": (-master["E5_t2a_max_up"], -master["E4_t2a_min_up"]),
-        "F40_real_T2a_max_cp_dl": (-master["E7_t2a_max_cp_dl"], -master["E6_t2a_min_cp_dl"]),
-        "F41_real_T2a_min_cp_dl": (-master["E7_t2a_max_cp_dl"], -master["E6_t2a_min_cp_dl"]),
-        "F42_real_T2a_max_cp_ul": (-master["E12_t2a_max_cp_ul"], -master["E11_t2a_min_cp_ul"]),
-        "F43_real_T2a_min_cp_ul": (-master["E12_t2a_max_cp_ul"], -master["E11_t2a_min_cp_ul"]),
-        "F44_real_Ta3_min_ul": (master["E9_ta3_min"], master["E10_ta3_max"]),
-        "F45_real_Ta3_max_ul": (master["E9_ta3_min"], master["E10_ta3_max"]),
+        "F38_real_T2a_max_up": ("T2a UP", -master["E5_t2a_max_up"], -master["E4_t2a_min_up"]),
+        "F39_real_T2a_min_up": ("T2a UP", -master["E5_t2a_max_up"], -master["E4_t2a_min_up"]),
+        "F40_real_T2a_max_cp_dl": ("T2a CP DL", -master["E7_t2a_max_cp_dl"], -master["E6_t2a_min_cp_dl"]),
+        "F41_real_T2a_min_cp_dl": ("T2a CP DL", -master["E7_t2a_max_cp_dl"], -master["E6_t2a_min_cp_dl"]),
+        "F42_real_T2a_max_cp_ul": ("T2a CP UL", -master["E12_t2a_max_cp_ul"], -master["E11_t2a_min_cp_ul"]),
+        "F43_real_T2a_min_cp_ul": ("T2a CP UL", -master["E12_t2a_max_cp_ul"], -master["E11_t2a_min_cp_ul"]),
+        "F44_real_Ta3_min_ul": ("Ta3 UL", master["E9_ta3_min"], master["E10_ta3_max"]),
+        "F45_real_Ta3_max_ul": ("Ta3 UL", master["E9_ta3_min"], master["E10_ta3_max"]),
     }
 
     rows = []
@@ -173,12 +173,12 @@ def _build_real_range_debug(master: dict[str, float]) -> pd.DataFrame:
                 "In Range": status,
             })
 
-    for real_key, (lo, hi) in computed_ranges.items():
+    for real_key, (group, lo, hi) in computed_ranges.items():
         real_val = master.get(real_key)
         low, high = (lo, hi) if lo <= hi else (hi, lo)
         status = "PASS" if real_val is not None and low <= real_val <= high else "OUT"
         rows.append({
-            "Group": "Derived",
+            "Group": group,
             "Expected Min": low,
             "Real Key": real_key,
             "Real Value": real_val,
