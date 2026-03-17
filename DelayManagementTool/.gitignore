@@ -10,7 +10,7 @@ __pycache__/
 .DS_Store
 .vscode/
 .idea/
-
+.steamlit/
 # 로그, 임시, 결과 엑셀
 *.log
 *.tmp
