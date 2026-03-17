@@ -229,7 +229,14 @@ def compute(delay_df: pd.DataFrame, cfg: Dict[str, float], cal_mode: str) -> Mas
     #     raise ValueError(f"Unknown cal_mode: {cal_mode}")
 
     # Calibration offset selection (항목 단위)
-    field_offsets = _calibration_offsets_by_field(cal_mode, E16, E17, cfg.get("calibration_offsets_by_mode  "))
+    # NOTE:
+    # keep backward compatibility with old typo key
+    # "calibration_offsets_by_mode  " (trailing spaces).
+    custom_tokens = cfg.get("calibration_offsets_by_mode")
+    if custom_tokens is None:
+        custom_tokens = cfg.get("calibration_offsets_by_mode  ")
+
+    field_offsets = _calibration_offsets_by_field(cal_mode, E16, E17, custom_tokens)
 
     # Master!F30:F37 (ODU real) / F38:F45 (ORU real)
     # F30_37 = [v + odu_off for v in odu_vals]

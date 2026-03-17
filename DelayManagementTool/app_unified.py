@@ -942,11 +942,23 @@ def extract_delay_profile_data(log_file):
                 scs = get_val("subcarrier-spacing")
 
                 # 포맷팅
-                if bw.isdigit() and int(bw) >= 1000000:
-                    bw_disp = f"{int(bw)//1000000} MHz"
+                # 로그의 bandwidth 값은 kHz 단위를 기준으로 표시
+                bw_num = None
+                try:
+                    bw_num = float(str(bw).replace(',', '').strip())
+                except Exception:
+                    bw_num = None
+
+                if bw_num is not None:
+                    if bw_num.is_integer():
+                        bw_khz_disp = f"{int(bw_num)} kHz"
+                    else:
+                        bw_khz_disp = f"{bw_num:.3f}".rstrip('0').rstrip('.') + " kHz"
+                    bw_mhz_disp = f"{(bw_num / 1000.0):.3f}".rstrip('0').rstrip('.') + " MHz"
                 else:
-                    bw_disp = f"{bw} Hz"
-                
+                    bw_khz_disp = f"{bw} kHz"
+                    bw_mhz_disp = f"{bw} MHz"
+
                 scs_disp = f"{scs} Hz"
 
                 keys = [
@@ -959,7 +971,8 @@ def extract_delay_profile_data(log_file):
                 
                 row_data = {
                     "id": i + 1,
-                    "bandwidth": bw_disp,
+                    "bandwidth": bw_khz_disp,
+                    "bandwidth_mhz": bw_mhz_disp,
                     "scs": scs_disp,
                     "raw_block": block # 필요시 원본 확인용
                 }
@@ -1696,11 +1709,18 @@ def profile_export():
     if not results:
         return jsonify({'error': 'No profile results to export'}), 400
 
+    selected_id = (request.form.get('profile_id') or '').strip()
     selected_bandwidth = (request.form.get('bandwidth') or '').strip()
-    if not selected_bandwidth:
-        return jsonify({'error': 'Bandwidth is required'}), 400
 
-    selected_row = next((row for row in results if str(row.get('bandwidth', '')).strip() == selected_bandwidth), None)
+    selected_row = None
+    if selected_id.isdigit():
+        sid = int(selected_id)
+        selected_row = next((row for row in results if int(row.get('id', -1)) == sid), None)
+
+    # backward compatibility: 기존 bandwidth 문자열 매칭도 허용
+    if selected_row is None and selected_bandwidth:
+        selected_row = next((row for row in results if str(row.get('bandwidth', '')).strip() == selected_bandwidth), None)
+
     if not selected_row:
         return jsonify({'error': 'Selected bandwidth was not found'}), 400
 
@@ -1723,7 +1743,8 @@ def profile_export():
     output.write(df.to_csv(index=False).encode('utf-8-sig'))
     output.seek(0)
 
-    safe_bandwidth = re.sub(r'[^0-9A-Za-z._-]+', '_', selected_bandwidth)
+    selected_bandwidth_label = str(selected_row.get('bandwidth_mhz') or selected_row.get('bandwidth') or 'bandwidth')
+    safe_bandwidth = re.sub(r'[^0-9A-Za-z._-]+', '_', selected_bandwidth_label)
     filename = f"profile_{safe_bandwidth}_{dt.datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
     return send_file(
         output,
