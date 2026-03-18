@@ -1008,12 +1008,10 @@ def extract_delay_profile_data(log_file):
                         bw_num = None
 
                 if bw_num is not None:
-                    # Delay profile의 bandwidth 단위는 kHz -> MHz 표시는 /1000
-                    bw_disp = f"{bw_num / 1_000:.3f} MHz"
-                    if bw_num >= 1_000_000:
-                        bw_disp = f"{bw_num / 1_000_000:.3f} MHz"
-                    else:
-                        bw_disp = f"{bw_num:g} Hz"
+                    # Delay profile 로그의 bandwidth 단위는 kHz이며,
+                    # UI 선택값은 원본(kHz)으로 유지하고 표시만 MHz로 변환한다.
+                    bw_mhz = bw_num / 1_000.0
+                    bw_disp = f"{bw_mhz:.3f}".rstrip('0').rstrip('.') + " MHz"
 
                     if float(bw_num).is_integer():
                         bw_value = str(int(bw_num))
