@@ -15,8 +15,7 @@ import os
 import traceback
 import tempfile
 
-from timing_engine import make_empty_delaydata, apply_upload_to_delaydata, compute
-from constants import DELAY_KEYS_ORDER, CAL_NONE
+from constants import DELAY_KEYS_ORDER
 
 try:
     import cairosvg
@@ -216,58 +215,6 @@ def build_basic_csv_stats(file_path):
         'data_types': {col: str(dtype) for col, dtype in df.dtypes.items()}
     }, df
 
-
-def _build_upload_values_from_ecpri_results(results: dict) -> dict:
-    upload_values = {}
-    for category, metric, key in [
-        ("User plane DL", "Min Delay (µs)", "min"),
-        ("User plane DL", "Max Delay (µs)", "max"),
-        ("Control Plane DL", "Min Delay (µs)", "min"),
-        ("Control Plane DL", "Max Delay (µs)", "max"),
-        ("Control Plane UL", "Min Delay (µs)", "min"),
-        ("Control Plane UL", "Max Delay (µs)", "max"),
-        ("User plane UL", "Min Delay (µs)", "min"),
-        ("User plane UL", "Max Delay (µs)", "max"),
-    ]:
-        data = results.get(category, {}) if isinstance(results, dict) else {}
-        val = nnum(data.get(key))
-        if val is None:
-            raise ValueError(f"Missing or invalid {category} / {metric} from eCPRI analysis")
-        upload_values[(category, metric)] = float(val)
-
-    missing = [k for k in DELAY_KEYS_ORDER if k not in upload_values]
-    if missing:
-        raise ValueError(f"eCPRI analysis does not provide all required DelayData keys: {missing}")
-
-    return upload_values
-
-
-def _to_float_micro_from_profile(value) -> float:
-    s = str(value).strip()
-    s = s.replace(',', '').replace('Hz', '').replace('hz', '').strip()
-    return float(s) / 1000.0
-
-
-def _cfg_from_profile_row(row: dict, t12_max_ui: float, t12_min_ui: float) -> dict:
-    return {
-        't2a_min_up': _to_float_micro_from_profile(row.get('t2a-min-up', '')),
-        't2a_max_up': _to_float_micro_from_profile(row.get('t2a-max-up', '')),
-        'tcp_adv_dl': _to_float_micro_from_profile(row.get('tcp-adv-dl', '')),
-        'ta3_min': _to_float_micro_from_profile(row.get('ta3-min', '')),
-        'ta3_max': _to_float_micro_from_profile(row.get('ta3-max', '')),
-        't2a_min_cp_ul': _to_float_micro_from_profile(row.get('t2a-min-cp-ul', '')),
-        't2a_max_cp_ul': _to_float_micro_from_profile(row.get('t2a-max-cp-ul', '')),
-        't12_max': -abs(float(t12_max_ui)),
-        't12_min': -abs(float(t12_min_ui)),
-    }
-
-
-def _xlsx_bytes_from_parameter_df(sheet_name: str, df: pd.DataFrame) -> bytes:
-    output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, sheet_name=sheet_name, index=False)
-    output.seek(0)
-    return output.getvalue()
 
 # ------------------------- Excel 출력 기능 -------------------------
 def save_ecpri_results_to_excel(results, filename=None):
